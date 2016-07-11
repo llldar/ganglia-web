@@ -6,12 +6,16 @@
 # and the global variables $metrics, $clusters, and $hosts
 # have been set.
 #
-
+/*
+    本文件主要用途是提供一些常用的函数，方便其他文件使用，减低代码的冗余度
+    使代码更加简洁易读
+*/
 include_once ( dirname(__FILE__) . "/lib/json.php" );
 
 #
 # Load event API driver.
-#
+# 加载 API 
+
 $driver = ucfirst(strtolower( !isset($conf['overlay_events_provider']) ? "Json" : $conf['overlay_events_provider'] ));
 if (file_exists( dirname(__FILE__) . "/lib/Events/Driver_${driver}.php")) {
   include_once( dirname(__FILE__) . "/lib/Events/Driver_${driver}.php" );
@@ -21,6 +25,8 @@ if (file_exists( dirname(__FILE__) . "/lib/Events/Driver_${driver}.php")) {
 # Allows a form of inheritance for template files.
 # If a file does not exist in the chosen template, the
 # default is used. Cuts down on code duplication.
+
+# 用于创建模板，以降低代码冗余
 function template ($name)
 {
    global $conf;
@@ -38,6 +44,9 @@ function template ($name)
 
 #------------------------------------------------------------------------------
 # Creates a hidden input field in a form. Used to save CGI variables.
+
+# 用于生成一个html页面中的隐藏的元素
+
 function hiddenvar ($name, $var)
 {
 
@@ -52,6 +61,9 @@ function hiddenvar ($name, $var)
 #------------------------------------------------------------------------------
 # Gives a readable time string, from a "number of seconds" integer.
 # Often used to compute uptime.
+
+# 用于把当前秒级别的时间转换成 天->小时->分钟->秒 的字符串格式的时间
+
 function uptime($uptimeS)
 {
    $uptimeD=intval($uptimeS/86400);
@@ -70,7 +82,9 @@ function uptime($uptimeS)
 # LOCATION attribute first. Requires the host attribute array from 
 # $hosts[$cluster][$name], where $name is the hostname.
 # Returns [-1,-1,-1] if we could not determine location.
-#
+
+# 用于从一个集群(Cluster)中寻找到某个节点的具体位置，如果失败则返回[-1,-1,-1]
+
 function findlocation($attrs)
 {
    $rack=$rank=$plane=-1;
@@ -91,6 +105,8 @@ function findlocation($attrs)
 
 
 #------------------------------------------------------------------------------
+# 统计用途代码，用于统计该集群下各种参数的总和值
+
 function cluster_sum($name, $metrics)
 {
    $sum = 0;
@@ -104,6 +120,8 @@ function cluster_sum($name, $metrics)
 }
 
 #------------------------------------------------------------------------------
+# 统计用途代码，用于统计该集群下各种参数的最小值
+
 function cluster_min($name, $metrics)
 {
    $min = "";
@@ -124,6 +142,8 @@ function cluster_min($name, $metrics)
 #
 # A useful function for giving the correct picture for a given
 # load. Scope is "node | cluster | grid". Value is 0 <= v <= 1.
+# 用于加载对应大小图片的函数
+
 function load_image ($scope, $value)
 {
    global $conf;
@@ -151,6 +171,8 @@ function load_image ($scope, $value)
 #------------------------------------------------------------------------------
 # A similar function that specifies the background color for a graph
 # based on load. Quantizes the load figure into 6 sets.
+# 为图表指定背景色的函数，分为6档
+
 function load_color ($value)
 {
    global $conf;
@@ -181,11 +203,14 @@ function load_color ($value)
 #
 # Just a useful function to print the HTML for
 # the load/death of a cluster node
+# 一个用于显示 集群节点 的 加载/宕机 情况的对应HTML的函数
+
 function node_image ($metrics)
 {
    global $hosts_down;
 
    # More rigorous checking if variables are set before trying to use them.
+   # 
    if ( isset($metrics['cpu_num']['VAL']) and $metrics['cpu_num']['VAL'] != 0 ) {
 		$cpu_num = $metrics['cpu_num']['VAL'];
    } else {
@@ -202,6 +227,7 @@ function node_image ($metrics)
 
    # Check if the host is down
    # RFM - Added isset() check to eliminate error messages in ssl_error_log
+   # 检测一个节点是否宕机
    if (isset($hosts_down) and $hosts_down)
          $image = template("images/node_dead.jpg");
    else
@@ -214,7 +240,9 @@ function node_image ($metrics)
 #
 # Finds the min/max over a set of metric graphs. Nodes is
 # an array keyed by host names.
-#
+# 用于找到每一列的参数表中最大最小值的函数
+# 节点是一个由地址名为键的数组
+
 function find_limits($clustername, 
 		     $nodes, 
 		     $metricname, 
@@ -299,7 +327,7 @@ function find_limits($clustername,
 #------------------------------------------------------------------------------
 #
 # Finds the avg of the given cluster & metric from the summary rrds.
-#
+# 利用rrds数据 计算出所给的集群参数的平均值
 function find_avg($clustername, $hostname, $metricname)
 {
     global $conf, $start, $end, $rrd_options;
@@ -325,6 +353,8 @@ function find_avg($clustername, $hostname, $metricname)
 
 #------------------------------------------------------------------------------
 # Alternate between even and odd row styles.
+# 在奇、偶 列 样式中切换用的函数
+
 function rowstyle()
 {
    static $style;
@@ -339,6 +369,9 @@ function rowstyle()
 # Return a version of the string which is safe for display on a web page.
 # Potentially dangerous characters are converted to HTML entities.  
 # Resulting string is not URL-encoded.
+# 返回一个可以在WEB页面安全显示的字符串的函数
+# 用于防止各类转义字符造成的安全问题
+
 function clean_string( $string )
 {
   return htmlentities( $string );
@@ -350,6 +383,8 @@ function sanitize ( $string ) {
 
 #------------------------------------------------------------------------------
 # If arg is a valid number, return it.  Otherwise, return null.
+# 检测参数是否一个合法的数字，不合法则返回null
+
 function clean_number( $value )
 {
   return is_numeric( $value ) ? $value : null;
@@ -357,6 +392,7 @@ function clean_number( $value )
 
 #------------------------------------------------------------------------------
 # Return true if string is a 3 or 6 character hex color.Return false otherwise.
+# 金策参数是否为一个合法的3-6位RGB颜色值
 function is_valid_hex_color( $string )
 {
   $return_value = false;
@@ -371,6 +407,7 @@ function is_valid_hex_color( $string )
 
 #------------------------------------------------------------------------------
 # Allowed view name characters are alphanumeric plus space, dash and underscore
+# 检测名字是否由 数字、字母、横杠、下划线、空格组成
 function is_proper_view_name( $string )
 {
   if(preg_match("/[^a-zA-z0-9_\-\ ]/", $string)){
@@ -384,7 +421,7 @@ function is_proper_view_name( $string )
 #------------------------------------------------------------------------------
 # Return a shortened version of a FQDN
 # if "hostname" is numeric only, assume it is an IP instead
-# 
+# 如果主机名 仅由数字组成，假设其为IP 地址
 function strip_domainname( $hostname ) {
     $postition = strpos($hostname, '.');
     $name = substr( $hostname , 0, $postition );
@@ -397,6 +434,7 @@ function strip_domainname( $hostname ) {
 
 #------------------------------------------------------------------------------
 # Read a file containing key value pairs
+# 读取一个由键值对组成的文件
 function file_to_hash($filename, $sep)
 {
   
@@ -414,6 +452,7 @@ function file_to_hash($filename, $sep)
 #------------------------------------------------------------------------------
 # Read a file containing key value pairs
 # Multiple values permitted for each key
+# 读取一个一对多的键值对的文件
 function file_to_hash_multi($filename, $sep)
 {
  
@@ -430,6 +469,7 @@ function file_to_hash_multi($filename, $sep)
 
 #------------------------------------------------------------------------------
 # Obtain a list of distinct values from an array of arrays
+# 从一个数组中获取非重复的值
 function hash_get_distinct_values($h)
 {
   $values = array();
@@ -449,11 +489,13 @@ $filter_defs = array();
 
 #------------------------------------------------------------------------------
 # Scan $conf['filter_dir'] and populate $filter_defs
+# 从常用的filter 定义中寻找 $conf['filter_dir'] 变量
 function discover_filters()
 {
   global $conf, $filter_defs;
 
   # Check whether filtering is configured or not
+  # 检测filter的config是否已设置
   if(!isset($conf['filter_dir']))
     return;
 
@@ -469,6 +511,7 @@ function discover_filters()
       if(!is_dir($filter_conf_filename))
       {
         # Parse the file contents
+        # 解析文件内容
         $full_filename = "${conf['filter_dir']}/$filter_conf_filename";
         $filter_params = file_to_hash($full_filename, '=');
         $filter_shortname = $filter_params["shortname"];
@@ -490,6 +533,7 @@ $filter_permit_list = NULL;
 
 #------------------------------------------------------------------------------
 # Initialise the filter permit list, if necessary
+# 初始化 允许的filter 列表 
 function filter_init()
 {
    global $conf, $filter_permit_list, $filter_defs, $choose_filter;
@@ -550,6 +594,8 @@ function filter_init()
 
 #------------------------------------------------------------------------------
 # Decide whether the given source is permitted by the filters, if any
+# 检测指定的filter 是否 在允许列表中
+
 function filter_permit($source_name)
 {
    global $filter_permit_list;
@@ -565,6 +611,7 @@ function filter_permit($source_name)
 
 $VIEW_NAME_SEP = '--';
 
+#获取 视图名
 function viewName($view) {
   global $VIEW_NAME_SEP;
 
@@ -614,6 +661,7 @@ class ViewList {
   }
 }
 
+# 获取视图元素
 function getViewItems($view, $range, $cs, $ce) {
   $view_elements = get_view_graph_elements($view);
   $view_items = array();
@@ -642,6 +690,7 @@ function getViewItems($view, $range, $cs, $ce) {
 
 ///////////////////////////////////////////////////////////////////////////////
 // Get all the available views
+// 获取所有的视图
 ///////////////////////////////////////////////////////////////////////////////
 function get_available_views() {
   global $conf;
@@ -650,6 +699,7 @@ function get_available_views() {
   Find available views by looking in the GANGLIA_DIR/conf directory
   anything that matches view_*.json. Read them all and build a available_views
   array
+  从GANGLIA_DIR/conf 目录下寻找所有 和 view_*.json 匹配的视图
   ----------------------------------------------------------------------- */
   $available_views = array();
 
@@ -665,6 +715,8 @@ function get_available_views() {
 	$view = json_decode(file_get_contents($view_config_file), TRUE);
 	// Check whether view type has been specified ie. regex. 
 	// If not it's standard view
+  // 检测视图是否为特殊的形式(如正则表达式)，否则就是标准的视图名
+
 	$view_type = 
 	  isset($view['view_type']) ? $view['view_type'] : "standard";
 	$default_size = isset($view['default_size']) ? 
@@ -701,6 +753,9 @@ function get_available_views() {
 // This function returns an array of graph URLs to be used when rendering the 
 // view. It returns only the base ie. cluster, host, metric information. 
 // It is up to the caller to add proper size information, time ranges etc.
+// 获取所有的图表的 URL
+// 这个函数将返回所有的用于渲染图表的视图的URL
+// 它仅返回 集群、主机、参数 的基础信息，由调用者决定信息的时间区间、大小等
 ///////////////////////////////////////////////////////////////////////////////
 function get_view_graph_elements($view) {
   global $conf, $index_array;
@@ -710,6 +765,7 @@ function get_view_graph_elements($view) {
   $view_elements = array();
 
   // set the default size from the view or global config
+  // 按配置文件 设置默认大小
   if ( isset($conf['default_view_graph_size']) ) {
     $default_size = $conf['default_view_graph_size'];
   }
@@ -722,6 +778,7 @@ function get_view_graph_elements($view) {
   switch ( $view['view_type'] ) {
   case "standard":
     // Does view have any items/graphs defined
+    // 检测视图是否有已定义的内容、图表
     if ( count($view['items']) == 0 ) {
       continue;
       // print "No graphs defined for this view. Please add some";
@@ -729,6 +786,7 @@ function get_view_graph_elements($view) {
       // Loop through graph items
       foreach ($view['items'] as $item_id => $item) {
 	// Check if item is an aggregate graph
+  // 检测这个物件是否为集合图表
 	if (isset($item['aggregate_graph'])) {
 	  foreach ( $item['host_regex'] as $reg_id => $regex_array ) {
 	    $graph_args_array[] = "hreg[]=" . urlencode($regex_array["regex"]);
@@ -753,6 +811,7 @@ function get_view_graph_elements($view) {
           }
 	  
 	  // If graph type is not specified default to line graph
+    // 如果图表类型没有指定，那么则默认为线性图表
 	  if (isset($item['graph_type']) && 
 	      in_array($item['graph_type'], array('line', 'stack')))
 	    $graph_args_array[] = "gtype=" . $item['graph_type'];
@@ -795,6 +854,7 @@ function get_view_graph_elements($view) {
           
 	  // Check whether it's a composite graph/report. 
 	  // It needs to have an item id
+    // 检测图表是否为复合图表
 	} else if ($item['item_id']) {
 	  $graph_args_array[] = "vn=" . $view['view_name'];
           $graph_args_array[] = "item_id=" . $item['item_id'];
@@ -803,9 +863,11 @@ function get_view_graph_elements($view) {
 	    array("graph_args" => join("&", $graph_args_array));
           unset($graph_args_array);
           
-	  // It's standard metric graph          
+	  // It's standard metric graph  
+    // 它是标准的参数图表
         } else {
 	  // Is it a metric or a graph(report)
+    // 检测其是一个参数还是一个图表
 	  if (isset($item['metric'])) {
 	    $graph_args_array[] = "m=" . $item['metric'];
 	    $name = $item['metric'];
@@ -968,6 +1030,9 @@ function legendEntry($vname, $legend_items) {
  *   checkAccess( $cluster, GangliaAcl::EDIT, $conf ); // user can edit current cluster?
  *   checkAccess( 'cluster1', GangliaAcl::EDIT, $conf ); // user has edit privilege on cluster1?
  *   checkAccess( 'cluster1', GangliaAcl::VIEW, $conf ); // user has view privilege on cluster1?
+ *   
+ *   检测当前用户是否有权限访问这些资源
+ *   如果资源权限未指定，则默认其为GangliaAcl::ALL的
  */
 function checkAccess($resource, $privilege, $conf) {
   
@@ -1027,6 +1092,7 @@ function viewId($view_name) {
 // Taken from
 // http://au2.php.net/manual/en/function.json-encode.php#80339
 // Pretty print JSON 
+// 用于格式化输出JSON文件
 ///////////////////////////////////////////////////////////////////////////////
 function json_prettyprint($json) 
 { 
@@ -1132,10 +1198,12 @@ function build_aggregate_graph_config ($graph_type,
 
   ///////////////////////////////////////////////////////////////////////////
   // Find matching hosts    
+  // 寻找匹配的主机
   foreach ( $hreg as $key => $query ) {
     foreach ( $index_array['hosts'] as $key => $host_name ) {
       if ( preg_match("/$query/i", $host_name ) ) {
         // We can have same hostname in multiple clusters
+        // 在不同的集群中可以有相同的主机名
         foreach ($index_array['cluster'][$host_name] AS $cluster) {
             $host_matches[] = $host_name . "|" . $cluster;
         }
@@ -1147,6 +1215,7 @@ function build_aggregate_graph_config ($graph_type,
 
   if( isset($mreg)) {
     // Find matching metrics
+    // 寻找匹配的参数
     foreach ( $mreg as $key => $query ) {
       foreach ( $index_array['metrics'] as $metric_key => $m_name ) {
         if ( preg_match("/$query/i", $metric_key, $metric_subexpr ) ) {
@@ -1178,6 +1247,7 @@ function build_aggregate_graph_config ($graph_type,
     $host_matches_unique = array_unique($host_matches);
 
     // Create graph_config series from matched hosts and metrics
+    // 使用匹配的主机名和参数 创建 graph_config 文件 
     foreach ( $host_matches_unique as $key => $host_cluster ) {
 
       $out = explode("|", $host_cluster);
@@ -1188,9 +1258,11 @@ function build_aggregate_graph_config ($graph_type,
       foreach ( $metric_matches_unique as $m_name => $legend ) {
 
         // We need to cycle the available colors
+        // 我们需要循环使用可用的颜色
         $color_index = $counter % $color_count;
 
         // next loop if there is no metric for this hostname
+        // 下一次循环用于处理 没有参数的主机名
         if( !in_array($host_name, $index_array['metrics'][$m_name]))
           continue;
 
@@ -1230,7 +1302,7 @@ function retrieve_metrics_cache ( $index = "all" ) {
 
    require dirname(__FILE__) . '/lib/cache.php';
    return;
-} // end of function get_metrics_cache () {
+} // end of function get_metrics_cache() {
 
 function getHostOverViewData($hostname, 
                              $metrics, 
@@ -1251,6 +1323,7 @@ function getHostOverViewData($hostname,
     $data->assign("node_msg", "This host is down."); 
 
   # No reason to go on if this node is down.
+  # 如果这个节点宕机了的话，就不必再继续下去了
   if ($hosts_down)
     return;
 
@@ -1265,6 +1338,7 @@ function getHostOverViewData($hostname,
   }
 
   # in case this is not defined, set to LOCALTIME so uptime will be 0 in the display
+  # 如果未定义的话，则显示当地时间
   $boottime = null;
   if (isset($metrics['boottime']['VAL']))
     $boottime = $metrics['boottime']['VAL'];
@@ -1273,12 +1347,14 @@ function getHostOverViewData($hostname,
 
   # Add the uptime metric for this host. Cannot be done in ganglia.php,
   # since it requires a fully-parsed XML tree. The classic contructor problem.
+  # 设置主机运行时间的参数
   $s_metrics['uptime']['TYPE'] = "string";
   $s_metrics['uptime']['VAL'] = uptime($cluster['LOCALTIME'] - $boottime);
   $s_metrics['uptime']['TITLE'] = "Uptime";
 
   # Add the gmond started timestamps & last reported time (in uptime format) from
   # the HOST tag:
+  # 怎讲gmond 的开始、持续时间的时间戳
   $s_metrics['gmond_started']['TYPE'] = "timestamp";
   $s_metrics['gmond_started']['VAL'] = $hosts_up['GMOND_STARTED'];
   $s_metrics['gmond_started']['TITLE'] = "Gmond Started";
@@ -1294,11 +1370,13 @@ function getHostOverViewData($hostname,
   $s_metrics['location']['TYPE'] = "string";
 
   # String metrics
+  # 字符串参数
   if (is_array($s_metrics)) {
     $s_metrics_data = array();
     ksort($s_metrics);
     foreach ($s_metrics as $name => $v) {
       # RFM - If units aren't defined for metric, make it be the empty string
+      # 如果该参数未定义，则让其成为一个空字符串
       ! array_key_exists('UNITS', $v) and $v['UNITS'] = "";
       if (isset($v['TITLE'])) {
         $s_metrics_data[$name]["name"] = $v['TITLE'];
@@ -1316,6 +1394,7 @@ function getHostOverViewData($hostname,
   $data->assign("s_metrics_data", $s_metrics_data);
 
   # Constant metrics.
+  # 常量参数
   $c_metrics_data = null;
   if (isset($c_metrics) and is_array($c_metrics)) {
     $c_metrics_data = array();
@@ -1365,6 +1444,7 @@ function buildMetricMaps($metrics,
 	isset($metric['TITLE']) ? $metric['TITLE'] : '';
 
       # Setup an array of groups that can be used for sorting in group view
+      # 设置一个可用于排序的数组
       if ( isset($metrics[$name]['GROUP']) ) {
 	$groups = $metrics[$name]['GROUP'];
       } else {
@@ -1385,6 +1465,7 @@ function buildMetricMaps($metrics,
 }
 
 // keep url decoding until it looks good
+// 解码URL 直到其看起来正常
 function heuristic_urldecode($blob) {
   while (substr($blob,0,1) == "%") {
     $blob = rawurldecode($blob);
@@ -1394,6 +1475,7 @@ function heuristic_urldecode($blob) {
 
 // alternative passthru() implementation to avoid incomplete images shown in
 // browsers.
+// 用于防止未加载完全的图片在浏览器中显示
 function my_passthru($command) {
   $tf = tempnam('/tmp', 'ganglia-graph.');
   $ret = exec("$command > $tf");
